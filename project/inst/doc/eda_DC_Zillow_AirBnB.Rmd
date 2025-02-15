@@ -1,0 +1,20 @@
+---
+title: "EDA of DC Zillow Listings Vs AirBnB"
+author: "Bryan Johns"
+date: "2025-02-15"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(devtools)
+load_all("../..")
+```
+
+# DC AirBnB Vs Zillow listings
+
+```{r}
+redf <- read_real_estate_json()
+head(redf)
+```
+

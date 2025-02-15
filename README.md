@@ -1,2 +1,2 @@
-# DC-AirBnB-Zillow
-An R exploratory data analysis comparing DC neighborhoods by Zillow and AirBnB listings
+# DC-AirBnB-w-gov-t-data
+R exploratory data analysis, comparing the DC Airbnb data with government data

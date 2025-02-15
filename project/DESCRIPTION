@@ -1,0 +1,9 @@
+Package: DC_property_data
+Title: Exploratory Data Analysis of DC Property Data
+Description: Exploratory Data Analysis of DC Property Data, with various support functions in the package.
+Version: 1.0
+Authors@R: person("Bryan", "Johns", email = "bryan.johns.official@gmail.com", role = c("aut", "cre", "cph"))
+License: MIT + file LICENSE
+Video:
+RoxygenNote: 7.3.2
+
