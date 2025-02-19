@@ -10,14 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 library(devtools)
 library(tibble)
 library(ggplot2)
+library(scales)
 load_all("../..")
 ```
-
-```{r, echo=FALSE}
-# Next code block is for temporary use
-# df <- as.data.frame(fromJSON(system.file("extdata", "washington_dc_real_estate.json", package = "DC_property_data"), flatten = TRUE))
-```
-
 
 # DC AirBnB Vs Zillow listings
 Loading the Zillow data:
@@ -79,3 +74,80 @@ ggplot(zdf, aes(x = longitude, y = latitude, color = shortNeighborhood)) +
   theme(legend.position = "bottom")  # Move the legend to the bottom
 ```
 
+And the AirBnB's:
+
+```{r, echo=FALSE}
+ggplot(adf, aes(x = longitude, y = latitude, color = neighborhood)) +
+  geom_point(alpha = 0.7) +
+  labs(title = "Spatial Distribution of Zillow Listings",
+       subtitle = "Checking that listings are assigned to DC neighborhoods",
+       color = "Neighborhood") +
+  theme_minimal() +
+  theme(legend.position = "none") # neighborhood names squish out the plot
+```
+
+```{r, echo=FALSE}
+# calculate average price by neighborhood for zdf...
+zdf_avg_price <- zdf %>%
+  group_by(shortNeighborhood) %>%
+  summarize(avg_price_zillow = mean(price, na.rm = TRUE))
+
+# ...and adf
+adf_avg_price <- adf %>%
+  group_by(shortNeighborhood) %>%
+  summarize(avg_price_airbnb = mean(price, na.rm = TRUE))
+
+# join as a df
+combined_avg_price <- full_join(zdf_avg_price, adf_avg_price, by = "shortNeighborhood")
+
+# get total average price, add to df
+total_avg_price_zillow <- mean(zdf$price, na.rm = TRUE)
+total_avg_price_airbnb <- mean(adf$price, na.rm = TRUE)
+combined_avg_price <- combined_avg_price %>%
+  add_row(shortNeighborhood = "Total", avg_price_zillow = total_avg_price_zillow, avg_price_airbnb = total_avg_price_airbnb)
+
+# calculate percent change from total average price for each neighborhood
+combined_avg_price <- combined_avg_price %>%
+  mutate(
+    change_zillow = (avg_price_zillow - total_avg_price_zillow) / total_avg_price_zillow * 100,
+    change_airbnb = (avg_price_airbnb - total_avg_price_airbnb) / total_avg_price_airbnb * 100
+  )
+
+# format
+combined_avg_price_formatted <- combined_avg_price %>%
+  mutate(
+    avg_price_zillow = dollar(avg_price_zillow, accuracy = 0.01),
+    avg_price_airbnb = dollar(avg_price_airbnb, accuracy = 0.01),
+    change_zillow = percent(change_zillow / 100, accuracy = 0.01),
+    change_airbnb = percent(change_airbnb / 100, accuracy = 0.01)
+  )
+
+print(combined_avg_price_formatted)
+```
+
+Create a scatterplot comparing percent change in Zillow versus percent change in Airbnb:
+
+```{r, echo=FALSE}
+ggplot(combined_avg_price, aes(x = change_zillow, y = change_airbnb)) +
+  geom_point() +
+  # geom_text(aes(label = shortNeighborhood), vjust = -0.5, hjust = 0.5) +
+  geom_smooth(method = "lm", se = FALSE, color = "blue") +
+  labs(title = "Percent Change in Zillow vs Airbnb Prices by Neighborhood",
+       x = "Percent Change in Zillow Prices",
+       y = "Percent Change in Airbnb Prices") +
+  theme_minimal()
+```
+
+Test for fit:
+```{r, echo=FALSE}
+# Fit a linear model
+fit <- lm(change_airbnb ~ change_zillow, data = combined_avg_price)
+
+# Print the summary of the linear model
+summary(fit)
+```
+
+
+Conclusion:
+
+AirBnB prices have little to do with Zillow prices (on the neighborhood level) - perhaps because the neighborhoods are not subdivided enough, perhaps because vacationers are looking for different things than home buyers?

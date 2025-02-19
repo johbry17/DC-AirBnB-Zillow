@@ -42,7 +42,7 @@ assign_neighborhood <- function(df, geojson_path = system.file("extdata", "neigh
   # add neighborhood column, assigning "Unknown" where no neighborhood match is found
   df_sf$neighborhood <- ifelse(is.na(df_sf$neighbourhood), "Unknown", df_sf$neighbourhood)
   
-  df_sf$shortNeighborhood <- substr(df_sf$neighborhood, 1, 20)  # add column of short neighborhood names
+  df_sf$shortNeighborhood <- substr(df_sf$neighborhood, 1, 25)  # add column of short neighborhood names
   
   # convert back to regular df
   df <- as.data.frame(df_sf) %>%

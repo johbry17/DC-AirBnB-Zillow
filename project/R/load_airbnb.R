@@ -13,6 +13,13 @@ read_airbnb_csv <- function(file_path = system.file("extdata", "airbnb_data.csv"
   
   # read CSV
   df <- read_csv(file_path, show_col_types = FALSE)
+  
+  df <- df %>% 
+    rename (
+      neighborhood = neighbourhood
+    )
+  
+  df$shortNeighborhood <- substr(df$neighborhood, 1, 25)  # add column of short neighborhood names
 
   return(df)
 }
