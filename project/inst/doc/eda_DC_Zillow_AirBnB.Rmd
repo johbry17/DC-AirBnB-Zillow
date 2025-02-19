@@ -1,20 +1,81 @@
 ---
 title: "EDA of DC Zillow Listings Vs AirBnB"
 author: "Bryan Johns"
-date: "2025-02-15"
+date: "2025-02"
 output: html_document
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(devtools)
+library(tibble)
+library(ggplot2)
 load_all("../..")
 ```
 
-# DC AirBnB Vs Zillow listings
+```{r, echo=FALSE}
+# Next code block is for temporary use
+# df <- as.data.frame(fromJSON(system.file("extdata", "washington_dc_real_estate.json", package = "DC_property_data"), flatten = TRUE))
+```
 
-```{r}
-redf <- read_real_estate_json()
-head(redf)
+
+# DC AirBnB Vs Zillow listings
+Loading the Zillow data:
+```{r, echo=FALSE}
+re_df <- read_real_estate_json()
+re_df <- as_tibble(re_df)
+head(re_df)
+```
+Loading the AirBnB data:
+```{r, echo=FALSE}
+adf <- read_airbnb_csv()
+head(adf)
+```
+
+Assign neighborhoods to the Zillow data. This drops 6 rows lacking lat/long coordinates.
+```{r, echo=FALSE}
+zdf <- assign_neighborhood(re_df)
+zdf <- as_tibble(zdf)
+head(zdf)
+```
+Verify that neighborhoods have been assigned correctly:
+```{r, echo=FALSE}
+ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood == "Unknown")) +
+  geom_point(alpha = 0.7) +
+  scale_color_manual(values = c("FALSE" = "black", "TRUE" = "red")) +
+  labs(title = "Spatial Distribution of Zillow Listings",
+       subtitle = "Checking that listings are assigned to DC neighborhoods",
+       color = "Unknown Neighborhood") +
+  theme_minimal()
+```
+
+The black plots are in DC, Red in Virginia and Maryland.
+
+Neighborhood counts:
+```{r, echo=FALSE}
+zdf %>%
+  count(shortNeighborhood, sort = TRUE)
+```
+Drop unknown neighborhoods and see if neighborhoods coded correctly:
+
+```{r, echo=FALSE}
+zdf <- zdf[zdf$neighborhood != "Unknown", ]
+ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood)) +
+  geom_point(alpha = 0.7) +
+  labs(title = "Spatial Distribution of Zillow Listings",
+       subtitle = "Checking that listings are assigned to DC neighborhoods",
+       color = "Neighborhood") +
+  theme_minimal() +
+  theme(legend.position = "none") # neighborhood names squish out the plot
+```
+
+```{r, echo=FALSE}
+ggplot(zdf, aes(x = longitude, y = latitude, color = shortNeighborhood)) +
+  geom_point(alpha = 0.7) +
+  labs(title = "Spatial Distribution of Zillow Listings",
+       subtitle = "Checking that listings are assigned to DC neighborhoods",
+       color = "Neighborhood") +
+  theme_minimal() +
+  theme(legend.position = "bottom")  # Move the legend to the bottom
 ```
 
