@@ -11,29 +11,36 @@ library(devtools)
 library(tibble)
 library(ggplot2)
 library(scales)
+library(dplyr)
+library(tidyr)
 load_all("../..")
 ```
 
 # DC AirBnB Vs Zillow listings
+
 Loading the Zillow data:
+
 ```{r, echo=FALSE}
 re_df <- read_real_estate_json()
 re_df <- as_tibble(re_df)
 head(re_df)
 ```
-Loading the AirBnB data:
+Loading the AirBnB data, which drops a few errors ($7000 hostel beds that should be $70):
+
 ```{r, echo=FALSE}
 adf <- read_airbnb_csv()
 head(adf)
 ```
 
 Assign neighborhoods to the Zillow data. This drops 6 rows lacking lat/long coordinates.
+
 ```{r, echo=FALSE}
 zdf <- assign_neighborhood(re_df)
 zdf <- as_tibble(zdf)
 head(zdf)
 ```
 Verify that neighborhoods have been assigned correctly:
+
 ```{r, echo=FALSE}
 ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood == "Unknown")) +
   geom_point(alpha = 0.7) +
@@ -47,10 +54,12 @@ ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood == "Unknown"))
 The black plots are in DC, Red in Virginia and Maryland.
 
 Neighborhood counts:
+
 ```{r, echo=FALSE}
 zdf %>%
   count(shortNeighborhood, sort = TRUE)
 ```
+
 Drop unknown neighborhoods and see if neighborhoods coded correctly:
 
 ```{r, echo=FALSE}
@@ -64,27 +73,19 @@ ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood)) +
   theme(legend.position = "none") # neighborhood names squish out the plot
 ```
 
-```{r, echo=FALSE}
-ggplot(zdf, aes(x = longitude, y = latitude, color = shortNeighborhood)) +
-  geom_point(alpha = 0.7) +
-  labs(title = "Spatial Distribution of Zillow Listings",
-       subtitle = "Checking that listings are assigned to DC neighborhoods",
-       color = "Neighborhood") +
-  theme_minimal() +
-  theme(legend.position = "bottom")  # Move the legend to the bottom
-```
-
 And the AirBnB's:
 
 ```{r, echo=FALSE}
 ggplot(adf, aes(x = longitude, y = latitude, color = neighborhood)) +
   geom_point(alpha = 0.7) +
-  labs(title = "Spatial Distribution of Zillow Listings",
-       subtitle = "Checking that listings are assigned to DC neighborhoods",
+  labs(title = "Spatial Distribution of AirBnB Listings",
+       # subtitle = "Checking that listings are assigned to DC neighborhoods",
        color = "Neighborhood") +
   theme_minimal() +
   theme(legend.position = "none") # neighborhood names squish out the plot
 ```
+
+## Average Price
 
 ```{r, echo=FALSE}
 # calculate average price by neighborhood for zdf...
@@ -128,26 +129,87 @@ print(combined_avg_price_formatted)
 Create a scatterplot comparing percent change in Zillow versus percent change in Airbnb:
 
 ```{r, echo=FALSE}
-ggplot(combined_avg_price, aes(x = change_zillow, y = change_airbnb)) +
+ggplot(combined_avg_price, aes(x = avg_price_zillow, y = avg_price_airbnb)) +
   geom_point() +
   # geom_text(aes(label = shortNeighborhood), vjust = -0.5, hjust = 0.5) +
   geom_smooth(method = "lm", se = FALSE, color = "blue") +
-  labs(title = "Percent Change in Zillow vs Airbnb Prices by Neighborhood",
-       x = "Percent Change in Zillow Prices",
-       y = "Percent Change in Airbnb Prices") +
+  labs(title = "Zillow vs Airbnb Prices by Neighborhood",
+       x = "Zillow Prices",
+       y = "Airbnb Prices") +
   theme_minimal()
 ```
 
-Test for fit:
+
+It doesn't look like much of a correlation. Let's prove it. Test for fit:
+
 ```{r, echo=FALSE}
 # Fit a linear model
-fit <- lm(change_airbnb ~ change_zillow, data = combined_avg_price)
+fit <- lm(avg_price_airbnb ~ avg_price_zillow, data = combined_avg_price)
 
 # Print the summary of the linear model
 summary(fit)
 ```
 
-
 Conclusion:
 
 AirBnB prices have little to do with Zillow prices (on the neighborhood level) - perhaps because the neighborhoods are not subdivided enough, perhaps because vacationers are looking for different things than home buyers?
+
+```{r, echo=FALSE}
+ggplot() +
+  # geom_boxplot(data = adf, aes(x = shortNeighborhood, y = price, fill = "Airbnb"), alpha = 0.5) +
+  geom_boxplot(data = zdf, aes(x = shortNeighborhood, y = price, fill = "Zillow"), alpha = 0.5) +
+  scale_fill_manual(values = "blue") +
+  labs(title = "Airbnb vs Zillow Prices by Neighborhood", x = "Neighborhood", y = "Price") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  coord_flip()
+  # theme(legend.position = "none", axis.text.x = element_text(angle = 90, hjust = 1)) # +
+  # coord_flip()
+```
+
+```{r, echo=FALSE}
+ggplot() +
+  geom_boxplot(data = adf, aes(x = shortNeighborhood, y = price, fill = "Airbnb"), alpha = 0.5) +
+  # geom_boxplot(data = zdf, aes(x = shortNeighborhood, y = price, fill = "Zillow"), alpha = 0.5) +
+  scale_fill_manual(values = "red") +
+  labs(title = "Airbnb vs Zillow Prices by Neighborhood", x = "Neighborhood", y = "Price") +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  coord_flip()
+```
+
+## Median Price
+
+```{r, echo=FALSE}
+airbnb_summary <- adf %>%
+  group_by(shortNeighborhood) %>%
+  summarise(median_airbnb_price = median(price, na.rm = TRUE))
+airbnb_summary
+```
+
+```{r, echo=FALSE}
+zillow_summary <- zdf %>%
+  group_by(shortNeighborhood) %>%
+  summarise(median_zillow_price = median(price, na.rm = TRUE))
+zillow_summary
+```
+
+
+```{r, echo=FALSE}
+library(tidyr)
+
+heatmap_df <- full_join(
+  airbnb_summary, zillow_summary, by = "shortNeighborhood"
+) %>%
+  pivot_longer(cols = c(median_airbnb_price, median_zillow_price),
+               names_to = "Type", values_to = "Price")
+
+ggplot(heatmap_df, aes(x = shortNeighborhood, y = Type, fill = Price)) +
+  geom_tile() +
+  scale_fill_gradient(low = "yellow", high = "red") +
+  theme_minimal() +
+  labs(title = "Heatmap of Median Airbnb vs Zillow Prices", x = "Neighborhood", y = "Type") +
+  coord_flip()
+
+```
+
