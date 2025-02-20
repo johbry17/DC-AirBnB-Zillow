@@ -2,7 +2,11 @@
 title: "EDA of DC Zillow Listings Vs AirBnB"
 author: "Bryan Johns"
 date: "2025-02"
-output: html_document
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
+    toc_float: true
 ---
 
 ```{r setup, include=FALSE}
@@ -17,6 +21,8 @@ load_all("../..")
 ```
 
 # DC AirBnB Vs Zillow listings
+
+## Data Preparation and Cleaning
 
 Loading the Zillow data:
 
@@ -194,22 +200,77 @@ zillow_summary <- zdf %>%
 zillow_summary
 ```
 
+Heatmap of Price by Neighborhood:
 
 ```{r, echo=FALSE}
-library(tidyr)
+# normalize the prices for the heatmap
+airbnb_summary <- airbnb_summary %>%
+  mutate(median_a_scaled = scale(median_airbnb_price))
 
+zillow_summary <- zillow_summary %>%
+  mutate(median_z_scaled = scale(median_zillow_price))
+
+# combine and pivot longer
 heatmap_df <- full_join(
-  airbnb_summary, zillow_summary, by = "shortNeighborhood"
+  airbnb_summary %>% select(shortNeighborhood, median_a_scaled),
+  zillow_summary %>% select(shortNeighborhood, median_z_scaled),
+  by = "shortNeighborhood"
 ) %>%
-  pivot_longer(cols = c(median_airbnb_price, median_zillow_price),
+  pivot_longer(cols = c(median_a_scaled, median_z_scaled),
                names_to = "Type", values_to = "Price")
 
+# create heatmap
 ggplot(heatmap_df, aes(x = shortNeighborhood, y = Type, fill = Price)) +
   geom_tile() +
   scale_fill_gradient(low = "yellow", high = "red") +
   theme_minimal() +
-  labs(title = "Heatmap of Median Airbnb vs Zillow Prices", x = "Neighborhood", y = "Type") +
-  coord_flip()
+  labs(title = "Heatmap of Scaled Median Airbnb vs Zillow Prices", x = "Neighborhood", y = "Type") +
+  coord_flip() # +
+  # theme(axis.text.x = element_text(angle = 90, hjust = 1))  # Rotate x-axis labels for legibility
+```
+
+```{r, echo=FALSE}
+roi_df <- full_join(airbnb_summary, zillow_summary, by = "shortNeighborhood") %>%
+  mutate(percent = (median_airbnb_price / median_zillow_price) * 100)
+
+ggplot(roi_df, aes(x = reorder(shortNeighborhood, percent), y = percent)) +
+  geom_col(fill = "blue") +
+  coord_flip() +
+  labs(title = "Airbnb Price as % of Zillow Price", x = "Neighborhood", y = "Percentage (%)") +
+  theme_minimal()
 
 ```
 
+## Hypothetical ROI
+
+Let's estimate the Return on Investment, if hypothetically buying a house to rent out as an AirBnB, using reviews per month. Note that this is extremely crude and assumption laden. Neighborhoods are large blocks and contain diversity within them, no granular detail included on type of rental (whole property? shared room?), and an off-the-cuff two nights per review (a possible way to refine this estimate would be based on future availability, itself an assumption-laden approach).
+
+```{r, echo=FALSE}
+roi_table <- adf %>%
+  group_by(shortNeighborhood) %>%
+  summarise(avg_airbnb_price = mean(price, na.rm = TRUE),
+            avg_reviews = mean(reviews_per_month, na.rm = TRUE)) %>%
+  full_join(zillow_summary, by = "shortNeighborhood") %>%
+  mutate(estimated_revenue = avg_airbnb_price * avg_reviews * 12 * 2, # 12 months, 2 nights per review
+         roi = estimated_revenue / median_zillow_price) %>%
+  select(shortNeighborhood, roi, everything()) %>% # reorder columns
+  arrange(desc(roi))
+
+# format roi as a percent
+roi_table_percent <- roi_table %>%
+  mutate(
+    roi = percent(roi),
+    avg_airbnb_price = dollar(avg_airbnb_price, accuracy = 0.01),
+    median_zillow_price = dollar(median_zillow_price, accuracy = 0.01),
+    estimated_revenue = dollar(estimated_revenue, accuracy = 0.01)
+  )
+
+print(roi_table_percent)
+
+```
+
+ROI per neighborhood distribution:
+
+```{r, echo=FALSE}
+summary(roi_table$roi)
+```
