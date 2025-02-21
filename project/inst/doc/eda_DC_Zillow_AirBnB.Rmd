@@ -12,11 +12,8 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 library(devtools)
-library(tibble)
-library(ggplot2)
+library(tidyverse)
 library(scales)
-library(dplyr)
-library(tidyr)
 library(sf)
 library(ggmap)
 library(ggspatial)
@@ -54,7 +51,7 @@ zdf <- assign_neighborhood(re_df)
 zdf <- as_tibble(zdf)
 head(zdf)
 ```
-Verify that neighborhoods have been assigned correctly:
+Verify that neighborhoods have been assigned correctly. The black plots are in DC, Red in Virginia and Maryland.
 
 ```{r, echo=FALSE}
 ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood == "Unknown")) +
@@ -66,16 +63,16 @@ ggplot(zdf, aes(x = longitude, y = latitude, color = neighborhood == "Unknown"))
   theme_minimal()
 ```
 
-The black plots are in DC, Red in Virginia and Maryland.
-
-Neighborhood counts:
+The red plots are "Unknown" in the upcoming Neighborhood counts:
 
 ```{r, echo=FALSE}
 zdf %>%
   count(shortNeighborhood, sort = TRUE)
 ```
 
-Drop unknown neighborhoods and see if neighborhoods coded correctly:
+## Map Zillow and AirBnB properties by neighborhood
+
+Drop "Unknown" neighborhoods and see if neighborhoods coded correctly:
 
 ```{r, echo=FALSE}
 zdf <- zdf[zdf$neighborhood != "Unknown", ]

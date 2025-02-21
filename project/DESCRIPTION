@@ -1,6 +1,6 @@
 Package: DC_property_data
 Title: Exploratory Data Analysis of DC Property Data
-Description: Exploratory Data Analysis of DC Property Data, with various support functions in the package.
+Description: Exploratory Data Analysis of DC Property Data from AirBnB and Zillow, with various support functions in the package to assist in data cleaning and preparation. Mostly playing with R's data visualization capabilities.
 Version: 1.0
 Authors@R: person("Bryan", "Johns", email = "bryan.johns.official@gmail.com", role = c("aut", "cre", "cph"))
 License: MIT + file LICENSE
@@ -9,3 +9,13 @@ RoxygenNote: 7.3.2
 Suggests: 
     testthat (>= 3.0.0)
 Config/testthat/edition: 3
+Depends: 
+    R (>= 3.5.0)
+Imports: 
+    tidyverse,
+    sf,
+    scales,
+    ggmap,
+    ggspatial,
+    rnaturalearth,
+    rnaturalearthdata
