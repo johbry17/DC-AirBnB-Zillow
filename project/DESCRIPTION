@@ -4,7 +4,7 @@ Description: Exploratory Data Analysis of DC Property Data from AirBnB and Zillo
 Version: 1.0
 Authors@R: person("Bryan", "Johns", email = "bryan.johns.official@gmail.com", role = c("aut", "cre", "cph"))
 License: MIT + file LICENSE
-Video:
+Video: https://youtu.be/2hPpNNIUMrg
 RoxygenNote: 7.3.2
 Suggests: 
     testthat (>= 3.0.0)

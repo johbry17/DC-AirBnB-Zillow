@@ -24,9 +24,11 @@ load_all("../..") # packages that clean and prep the data for analysis / visuali
 
 # DC AirBnB Vs Zillow listings
 
-This is a brief exploratory data analysis of AirBnB listings vs Zillow listings for Washington, DC, using web-scraped data from roughly June of 2024. There are no real interesting observations. I was trying out R (this is my first ever R Markdown) as part of the requirements for the final project of [cs50's Introduction to Programming with R](https://cs50.harvard.edu/r/2024/).
+This is a brief exploratory data analysis of AirBnB listings vs Zillow listings for Washington, DC, using web-scraped data from roughly June of 2024. This project primarily serves as an exercise in applying R for exploratory data analysis rather than deriving actionable insights. I was trying out R (this is my first ever R Markdown) as part of the requirements for the final project of [cs50's Introduction to Programming with R](https://cs50.harvard.edu/r/2024/).
 
 I'm playing with R visualizations.
+
+Datasets provided by [Inside AirBnB](http://insideairbnb.com/about/) and [Kaggle](https://www.kaggle.com/datasets/datadetective08/washington-d-c-housing-market-2024).
 
 ## Data Preparation and Cleaning
 
@@ -445,3 +447,8 @@ ggplot() +
   theme_minimal()
 ```
 
+### Fin.
+
+- Bryan Johns
+
+No trees were killed to send this report, but a large number of electrons were terribly inconvenienced.
