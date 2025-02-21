@@ -17,8 +17,6 @@ R exploratory data analysis, comparing the Washington, DC Airbnb data with Zillo
 
 An R Markdown exploratory data analysis (eda) comparing Zillow property prices with AirBnB rentals. The eda utilizes an R package for much of the data cleaning and preparation to fulfill the requirements for the final project of [cs50's Introduction to Programming with R](https://cs50.harvard.edu/r/2024/). This is my first ever eda in R, so it's more about practice than viable, useful insights.
 
-The ducksay folder is an example project from cs50R that produces ASCII art, a la the famous cowsay.
-
 ## Usage
 
 To use this project, follow these steps:
@@ -54,6 +52,10 @@ Clone the repository to your local machine using the following command:
 
 7. **View the HTML Output**: After rendering, the HTML output file will be generated in the same directory as the R Markdown file. You can open this file in your web browser to view the analysis. After rendering, open `./project/inst/doc/eda_DC_Zillow_AirBnB.html`.
 
+The ducksay folder is an example project from cs50R that produces ASCII art, a la the famous cowsay:
+
+![Typical Cowsay Output](./images/Cowsay_Typical_Output.png)
+
 ## Gallery
 
 ![AirBnB Price as Percent of Zillow Price](./images/airbnb_percent_of_zillow.png)
@@ -65,6 +67,8 @@ Clone the repository to your local machine using the following command:
 ![Bubble Map of Reviews and Price per Neighborhood](./images/bubble_price_reviews_neighborhood.png)
 
 ## Certificate
+
+![cs50 R Certificate](./images/CS50R.png)
 
 ## References
 
