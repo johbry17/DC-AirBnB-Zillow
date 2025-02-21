@@ -17,10 +17,19 @@ library(ggplot2)
 library(scales)
 library(dplyr)
 library(tidyr)
-load_all("../..")
+library(sf)
+library(ggmap)
+library(ggspatial)
+library(rnaturalearth)
+library(rnaturalearthdata)
+load_all("../..") # packages that clean and prep the data for analysis / visualization
 ```
 
 # DC AirBnB Vs Zillow listings
+
+This is a brief exploratory data analysis of AirBnB listings vs Zillow listings for Washington, DC, using web-scraped data from roughly June of 2024. There are no real interesting observations. I was trying out R (this is my first ever R Markdown) as part of the requirements for the final project of [cs50's Introduction to Programming with R](https://cs50.harvard.edu/r/2024/).
+
+I'm playing with R visualizations.
 
 ## Data Preparation and Cleaning
 
@@ -160,6 +169,31 @@ Conclusion:
 
 AirBnB prices have little to do with Zillow prices (on the neighborhood level) - perhaps because the neighborhoods are not subdivided enough, perhaps because vacationers are looking for different things than home buyers?
 
+## Price Histograms
+
+```{r, echo=FALSE}
+adf_filtered <- adf %>% filter(adf$price < 1000)
+
+ggplot() +
+  geom_histogram(data = adf_filtered, aes(x = price, fill = "Airbnb"), binwidth = 50, alpha = 0.5, position = "identity") +
+  scale_fill_manual(values = c("Airbnb" = "red")) +
+  labs(title = "Histogram of Airbnb Prices", x = "Price", y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+```{r, echo=FALSE}
+zdf_filtered <- zdf %>% filter(zdf$price < 2000000)
+
+ggplot() +
+  geom_histogram(data = zdf_filtered, aes(x = price, fill = "Zillow"), binwidth = 50000, alpha = 0.5, position = "identity") +
+  scale_fill_manual(values = c("Zillow" = "blue")) +
+  labs(title = "Histogram of Zillow Prices", x = "Price", y = "Count") +
+  theme_minimal() +
+  theme(legend.position = "none")
+```
+
+
 ```{r, echo=FALSE}
 ggplot() +
   # geom_boxplot(data = adf, aes(x = shortNeighborhood, y = price, fill = "Airbnb"), alpha = 0.5) +
@@ -241,6 +275,58 @@ ggplot(roi_df, aes(x = reorder(shortNeighborhood, percent), y = percent)) +
 
 ```
 
+## Listings per Neighborhood
+
+```{r, echo=FALSE}
+airbnb_counts <- as.data.frame(table(adf$shortNeighborhood))
+colnames(airbnb_counts) <- c("shortNeighborhood", "airbnb_listings")
+
+zillow_counts <- as.data.frame(table(zdf$shortNeighborhood))
+colnames(zillow_counts) <- c("shortNeighborhood", "zillow_listings")
+
+# Merge counts on neighborhood
+listings_count <- full_join(airbnb_counts, zillow_counts, by = "shortNeighborhood") %>%
+  replace_na(list(airbnb_listings = 0, zillow_listings = 0)) %>%
+  pivot_longer(cols = c(airbnb_listings, zillow_listings), names_to = "Listing Type", values_to = "Count")
+
+# Plot
+ggplot(listings_count, aes(x = reorder(shortNeighborhood, Count), y = Count, fill = `Listing Type`)) +
+  geom_col(position = "dodge") +
+  # coord_flip() +
+  scale_fill_manual(values = c("airbnb_listings" = "red", "zillow_listings" = "blue")) +
+  labs(title = "Number of Listings: Airbnb vs Zillow", x = "Neighborhood", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r, echo=FALSE}
+airbnb_types <- adf %>%
+  group_by(shortNeighborhood, room_type) %>%
+  summarise(count = n(), .groups = "drop")
+
+ggplot(airbnb_types, aes(x = shortNeighborhood, y = count, fill = room_type)) +
+  geom_bar(stat = "identity") +
+  # coord_flip() +
+  scale_fill_viridis_d() +
+  labs(title = "Airbnb Property Types by Neighborhood", x = "Neighborhood", y = "Count") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, hjust = 1))
+
+```
+
+```{r, echo=FALSE}
+
+# Filter adf for prices less than 500
+adf_filtered <- adf %>% filter(price < 500)
+ggplot(adf_filtered, aes(x = shortNeighborhood, y = number_of_reviews, fill = price)) +
+  geom_tile() +
+  scale_fill_gradient(low = "blue", high = "red") +
+  theme_minimal() +
+  labs(title = "Heatmap of Reviews vs AirBnB Prices", x = "Neighborhood", y = "Number of Reviews") +
+  coord_flip()
+```
+
 ## Hypothetical ROI
 
 Let's estimate the Return on Investment, if hypothetically buying a house to rent out as an AirBnB, using reviews per month. Note that this is extremely crude and assumption laden. Neighborhoods are large blocks and contain diversity within them, no granular detail included on type of rental (whole property? shared room?), and an off-the-cuff two nights per review (a possible way to refine this estimate would be based on future availability, itself an assumption-laden approach).
@@ -274,3 +360,91 @@ ROI per neighborhood distribution:
 ```{r, echo=FALSE}
 summary(roi_table$roi)
 ```
+
+## Some Maps
+
+```{r, echo=FALSE}
+# load the geojson, note the British spelling of neighbourhood
+neighborhoods <- st_read(system.file("extdata", "neighbourhoods_cleaned.geojson", package = "DC_property_data"), quiet = TRUE) 
+
+# aggregate review counts by neighborhood
+reviews_by_neighborhood <- adf %>%
+  group_by(neighbourhood = neighborhood) %>%
+  summarize(total_reviews = sum(number_of_reviews, na.rm = TRUE))
+
+# merge review data with spatial neighborhoods
+choropleth_data <- neighborhoods %>%
+  left_join(reviews_by_neighborhood, by = "neighbourhood")
+
+# create the choropleth map
+ggplot() +
+  geom_sf(data = choropleth_data, aes(fill = total_reviews), color = "black") +
+  scale_fill_gradient(low = "blue", high = "red", na.value = "grey50") +
+  theme_void() +
+  labs(title = "Choropleth of Airbnb Reviews by Neighborhood", fill = "Total Reviews") +
+  theme(legend.position = "right")
+```
+
+```{r, echo=FALSE}
+# load the geojson, note the British spelling of 'neighbourhood'
+neighborhoods <- st_read(system.file("extdata", "neighbourhoods_cleaned.geojson", package = "DC_property_data"), quiet = TRUE) 
+
+# aggregate median price by neighborhood
+price_by_neighborhood <- adf %>%
+  group_by(neighbourhood = neighborhood) %>%  # Match column name in GeoJSON
+  summarize(median_price = median(price, na.rm = TRUE))
+
+# merge price data with spatial neighborhoods
+choropleth_data <- neighborhoods %>%
+  left_join(price_by_neighborhood, by = "neighbourhood")
+
+# create the choropleth map
+ggplot() +
+  geom_sf(data = choropleth_data, aes(fill = median_price), color = "black") +
+  scale_fill_gradient(low = "blue", high = "red", na.value = "grey50") +
+  theme_void() +
+  labs(title = "Choropleth of Airbnb Median Price by Neighborhood", fill = "Median Price") +
+  theme(legend.position = "right")
+```
+
+
+
+```{r, echo=FALSE}
+# convert adf to sf object
+adf_sf <- st_as_sf(adf, coords = c("longitude", "latitude"), crs = 4326)
+
+# get basemap from OpenStreetMap
+ggplot() +
+  annotation_map_tile(type = "osm", zoom = 12) +  # getch OSM basemap
+  geom_sf(data = adf_sf, aes(size = number_of_reviews, color = price), alpha = 0.6) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(title = "Bubble Map: Popularity vs AirBnB Prices", subtitle = "Based on number of reviews", x = "Longitude", y = "Latitude") +
+  theme_minimal()
+```
+
+```{r, echo=FALSE}
+# aggregate data by neighborhood
+neighborhood_summary <- adf %>%
+  group_by(neighborhood) %>%
+  summarize(
+    total_reviews = sum(number_of_reviews, na.rm = TRUE),
+    median_price = median(price, na.rm = TRUE),
+    longitude = mean(longitude, na.rm = TRUE), 
+    latitude = mean(latitude, na.rm = TRUE)
+  ) %>%
+  drop_na(longitude, latitude)  # remove any NA coordinates
+
+# convert to sf object
+neighborhood_sf <- st_as_sf(neighborhood_summary, coords = c("longitude", "latitude"), crs = 4326)
+
+# plot with OpenStreetMap basemap
+ggplot() +
+  annotation_map_tile(type = "osm", zoom = 12) +  # fetch OSM basemap
+  geom_sf(data = neighborhood_sf, aes(size = total_reviews, color = median_price), alpha = 0.7) +
+  scale_color_gradient(low = "blue", high = "red") +
+  labs(title = "Bubble Map: Popularity vs Airbnb Prices by Neighborhood",
+       subtitle = "Bubble size = Total Reviews, Color = Median Price",
+       x = "Longitude", y = "Latitude") +
+  theme_minimal()
+```
+
