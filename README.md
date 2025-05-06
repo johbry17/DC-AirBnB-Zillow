@@ -7,7 +7,7 @@ R exploratory data analysis, comparing the Washington, DC Airbnb data with Zillo
 - [Description](#description)
 - [Usage](#usage)
 - [Gallery](#gallery)
-- [Certificate](#certificate)
+- [Course Certificate](#course-certificate)
 - [References](#references)
 - [Licenses](#licenses)
 - [Acknowledgements](#acknowledgements)
@@ -66,7 +66,7 @@ The ducksay folder is an example project from cs50R that produces ASCII art, a l
 
 ![Bubble Map of Reviews and Price per Neighborhood](./images/bubble_price_reviews_neighborhood.png)
 
-## Certificate
+## Course Certificate
 
 ![cs50 R Certificate](./images/CS50R.png)
 
